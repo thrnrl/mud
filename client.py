@@ -5,7 +5,7 @@ import threading
 jobs = {
     1: "정찰",  # Scout
     2: "전투",  # Combat
-    3: "의무",  # Medic
+    3: "석궁병",  # Medic
     4: "격투가"   # Support
 }
 
@@ -29,12 +29,20 @@ def start_client(client_id):
                     print("1: 30 데미지 / 2: 50 데미지 + 약점 간파")
                 elif jobs[job_choice] == "전투":
                     print("1: 50 데미지 / 2: 100 강한 공격")
-                elif jobs[job_choice] == "의무":
-                    print("1: 팀원 체력 30 회복 (팀원 번호 선택) / 2: 전체 팀원 체력 10 회복")
+                elif jobs[job_choice] == "석궁병":
+                    print("1: 공격 / 2: 출혈")
                 elif jobs[job_choice] == "격투가":
                     print("1: 50 데미지 / 2: 40 데미지 + 50% 확률로 연속 공격")
-                user_input = input("행동을 선택하세요: ")
-                client.send(user_input.encode())
+                
+                # 행동을 선택하는 부분
+                while True:
+                    user_input = input("행동을 선택하세요: ")
+                    if user_input == "1" or user_input == "2":
+                        client.send(user_input.encode())  # 서버로 행동 전송
+                        break  # 유효한 입력을 받으면 반복 종료
+                    else:
+                        print("잘못된 입력입니다. 1 또는 2를 입력하세요.")
+
             else:
                 print(response)
 
@@ -53,7 +61,7 @@ def start_client(client_id):
         job_choice = 1
 
     print(f"선택한 직업: {jobs[job_choice]}")
-    client.send(str(job_choice).encode()) 
+    client.send(str(job_choice).encode())
 
     while True:
         pass
