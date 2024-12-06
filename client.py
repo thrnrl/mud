@@ -1,20 +1,36 @@
 import socket
 import threading
+import logging
 
-# 직업 리스트
-jobs = {
-    1: "정찰",  # Scout
-    2: "전투",  # Combat
-    3: "석궁병",  # Medic
-    4: "격투가"   # Support
+# 로깅 설정
+def setup_client_logging(client_id):
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO) 
+    console_format = logging.Formatter('%(message)s') 
+    console_handler.setFormatter(console_format)
+    
+    file_handler = logging.FileHandler(f'client{client_id}.txt', mode='w', encoding='utf-8')
+    file_format = logging.Formatter('%(message)s') 
+    file_handler.setFormatter(file_format)
+
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+
+weapons = {
+    1: "창", 
+    2: "대검", 
+    3: "활",  
+    4: "맨손"   
 }
 
-# 서버에 연결
 def start_client(client_id):
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect(('localhost', 9999))
+    setup_client_logging(client_id)
 
-    # 클라이언트 ID를 서버로 전송
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect(('localhost', 1234))
     client.send(str(client_id).encode())
 
     def receive_messages():
@@ -22,46 +38,47 @@ def start_client(client_id):
             response = client.recv(1024).decode()
 
             if response == "0":
-                print("다른 클라이언트의 차례입니다. 대기해주세요.")
+                logging.info("다른 플레이어의 입력을 기다리는 중입니다..")
             elif response == "1":
-                print("너의 턴입니다. 행동을 선택하세요!")
-                if jobs[job_choice] == "정찰":
-                    print("1: 30 데미지 / 2: 50 데미지 + 약점 간파")
-                elif jobs[job_choice] == "전투":
-                    print("1: 50 데미지 / 2: 100 강한 공격")
-                elif jobs[job_choice] == "석궁병":
-                    print("1: 공격 / 2: 출혈")
-                elif jobs[job_choice] == "격투가":
-                    print("1: 50 데미지 / 2: 40 데미지 + 50% 확률로 연속 공격")
+                logging.info("거인의 행동이 잦아들고, 당신은 공격할 준비를 합니다.")
+                if weapons[weapon_choice] == "창":
+                    logging.info("1: 찌르기[50] ㅣ 2: 던지기[70]")
+                elif weapons[weapon_choice] == "대검":
+                    logging.info("1: 휘두르기[60] ㅣ 2: 내려치기[80]")
+                elif weapons[weapon_choice] == "활":
+                    logging.info("1: 쏘기[50] ㅣ 2: 약점 쏘기[10 + 출혈(3턴간 10의 데미지)]")
+                elif weapons[weapon_choice] == "맨손":
+                    logging.info("1: 때리기[50] ㅣ 2: 두번 차기 [40 + 추가 공격]")
                 
-                # 행동을 선택하는 부분
                 while True:
-                    user_input = input("행동을 선택하세요: ")
+                    user_input = input("행동을 선택하세요 : ")
                     if user_input == "1" or user_input == "2":
-                        client.send(user_input.encode())  # 서버로 행동 전송
-                        break  # 유효한 입력을 받으면 반복 종료
+                        client.send(user_input.encode())
+                        break
                     else:
-                        print("잘못된 입력입니다. 1 또는 2를 입력하세요.")
-
+                        logging.warning("잘못된 입력입니다. 1 또는 2를 입력하세요.")
+            elif "게임이 종료됩니다." in response:
+                logging.info(response)
+                client.close()
+                break
             else:
-                print(response)
+                logging.info(response)
 
     receive_thread = threading.Thread(target=receive_messages)
     receive_thread.daemon = True
     receive_thread.start()
 
-    # 직업 선택
-    print("직업을 선택하세요:")
-    for job_id, job_name in jobs.items():
-        print(f"{job_id}. {job_name}")
+    logging.info("당신은 거인을 물리쳐야 합니다. \n눈 앞에는 4개의 무기가 보입니다.")
+    for job_id, job_name in weapons.items():
+        logging.info(f"{job_id}. {job_name}")
 
-    job_choice = int(input("직업 번호를 선택하세요 (1-4): "))
-    if job_choice not in jobs:
-        print("잘못된 직업 번호입니다. 기본 직업 '정찰'로 설정됩니다.")
-        job_choice = 1
+    weapon_choice = int(input("무기를 선택하세요 : "))
+    if weapon_choice not in weapons:
+        logging.warning("무기 선택이 잘못되었습니다. 기본값(1번 무기)을 선택합니다.")
+        weapon_choice = 1
 
-    print(f"선택한 직업: {jobs[job_choice]}")
-    client.send(str(job_choice).encode())
+    logging.info(f"당신은 {weapons[weapon_choice]}을 들기로 합니다.\n")
+    client.send(str(weapon_choice).encode())
 
     while True:
         pass
@@ -69,6 +86,5 @@ def start_client(client_id):
     client.close()
 
 if __name__ == "__main__":
-    # 클라이언트 ID를 받아서 클라이언트 시작
     client_id = int(input("이 클라이언트는 번호 몇 번인가요? (1, 2, 3, 4): "))
     start_client(client_id)
